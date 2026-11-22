@@ -1,0 +1,1705 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Windows 95 Simulator</title>
+  <style>
+    :root {
+      --win-teal: #008080;
+      --win-gray: #c0c0c0;
+      --win-dark-gray: #808080;
+      --win-darker-gray: #404040;
+      --win-light-gray: #dfdfdf;
+      --win-white: #ffffff;
+      --win-black: #000000;
+      --win-blue: #000080;
+      --win-blue-light: #1084d0;
+    }
+
+    * {
+      box-sizing: border-box;
+      user-select: none;
+      -webkit-user-select: none;
+      font-family: "MS Sans Serif", "Tahoma", "Segoe UI", sans-serif;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: var(--win-teal);
+      font-size: 12px;
+    }
+
+    /* Clases de bordes clásicos 3D Windows 95 */
+    .bevel-out {
+      background-color: var(--win-gray);
+      border-top: 2px solid var(--win-white);
+      border-left: 2px solid var(--win-white);
+      border-right: 2px solid var(--win-darker-gray);
+      border-bottom: 2px solid var(--win-darker-gray);
+      box-shadow: inset -1px -1px 0 var(--win-dark-gray), inset 1px 1px 0 var(--win-light-gray);
+    }
+
+    .bevel-in {
+      background-color: var(--win-white);
+      border-top: 2px solid var(--win-dark-gray);
+      border-left: 2px solid var(--win-dark-gray);
+      border-right: 2px solid var(--win-white);
+      border-bottom: 2px solid var(--win-white);
+      box-shadow: inset 1px 1px 0 var(--win-darker-gray), inset -1px -1px 0 var(--win-light-gray);
+    }
+
+    .win-btn {
+      background-color: var(--win-gray);
+      border-top: 2px solid var(--win-white);
+      border-left: 2px solid var(--win-white);
+      border-right: 2px solid var(--win-darker-gray);
+      border-bottom: 2px solid var(--win-darker-gray);
+      box-shadow: inset -1px -1px 0 var(--win-dark-gray);
+      padding: 4px 10px;
+      cursor: pointer;
+      color: var(--win-black);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      font-size: 12px;
+    }
+
+    .win-btn:active, .win-btn.active {
+      border-top: 2px solid var(--win-darker-gray);
+      border-left: 2px solid var(--win-darker-gray);
+      border-right: 2px solid var(--win-white);
+      border-bottom: 2px solid var(--win-white);
+      box-shadow: inset 1px 1px 0 var(--win-dark-gray);
+      padding: 5px 9px 3px 11px;
+    }
+
+    /* Pantalla de arranque */
+    #boot-screen {
+      position: fixed;
+      inset: 0;
+      background: #000;
+      color: #c0c0c0;
+      z-index: 99999;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      font-family: "Courier New", monospace;
+      padding: 20px;
+    }
+
+    .boot-logo {
+      background: linear-gradient(180deg, #87ceeb 0%, #e0f6ff 55%, #ffffff 100%);
+      border: 4px solid #c0c0c0;
+      padding: 30px 45px;
+      text-align: center;
+      box-shadow: 0 0 25px rgba(255,255,255,0.2);
+      max-width: 90%;
+    }
+
+    .boot-logo h1 {
+      margin: 0;
+      font-family: "Arial Black", sans-serif;
+      font-size: clamp(26px, 5vw, 44px);
+      color: #000;
+      letter-spacing: -1px;
+    }
+
+    .boot-logo span {
+      color: #fff;
+      background: #000080;
+      padding: 2px 8px;
+      margin-left: 4px;
+    }
+
+    .boot-bar-wrap {
+      width: 260px;
+      height: 18px;
+      border: 2px solid #808080;
+      margin-top: 20px;
+      background: #000;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .boot-bar {
+      height: 100%;
+      width: 40%;
+      background: linear-gradient(90deg, #000080, #1084d0, #000080);
+      position: absolute;
+      animation: bootSlide 1.2s infinite linear;
+    }
+
+    @keyframes bootSlide {
+      0% { left: -40%; }
+      100% { left: 100%; }
+    }
+
+    /* Escritorio */
+    #desktop {
+      position: relative;
+      width: 100%;
+      height: calc(100% - 34px);
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      flex-wrap: wrap;
+      align-content: flex-start;
+      gap: 16px;
+      overflow: hidden;
+    }
+
+    .desktop-icon {
+      width: 74px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      cursor: pointer;
+      padding: 4px;
+      border: 1px solid transparent;
+    }
+
+    .desktop-icon.selected .icon-label {
+      background-color: var(--win-blue);
+      border: 1px dotted #ffff00;
+    }
+
+    .icon-graphic {
+      width: 34px;
+      height: 34px;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .icon-label {
+      color: var(--win-white);
+      font-size: 11px;
+      line-height: 1.2;
+      padding: 1px 3px;
+      text-shadow: 1px 1px 0 #000;
+      word-break: break-word;
+    }
+
+    /* Ventanas */
+    .window {
+      position: absolute;
+      min-width: 250px;
+      min-height: 160px;
+      display: flex;
+      flex-direction: column;
+      padding: 3px;
+      box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.35);
+    }
+
+    .window.maximized {
+      top: 0 !important;
+      left: 0 !important;
+      width: 100% !important;
+      height: 100% !important;
+    }
+
+    .window-titlebar {
+      background: linear-gradient(90deg, var(--win-blue), var(--win-blue-light));
+      color: var(--win-white);
+      padding: 3px 5px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-weight: bold;
+      font-size: 12px;
+      cursor: move;
+      touch-action: none;
+    }
+
+    .window.inactive .window-titlebar {
+      background: var(--win-dark-gray);
+      color: var(--win-light-gray);
+    }
+
+    .window-title-left {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+
+    .window-controls {
+      display: flex;
+      gap: 2px;
+      flex-shrink: 0;
+    }
+
+    .win-ctrl-btn {
+      width: 18px;
+      height: 16px;
+      padding: 0;
+      font-size: 10px;
+      font-weight: bold;
+      line-height: 1;
+    }
+
+    .window-menubar {
+      display: flex;
+      gap: 10px;
+      padding: 2px 6px;
+      border-bottom: 1px solid var(--win-dark-gray);
+      font-size: 11px;
+    }
+
+    .window-menubar span {
+      cursor: pointer;
+      padding: 1px 4px;
+    }
+
+    .window-menubar span:hover {
+      background: var(--win-blue);
+      color: var(--win-white);
+    }
+
+    .window-body {
+      flex: 1;
+      overflow: auto;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .window-statusbar {
+      border-top: 1px solid var(--win-dark-gray);
+      padding: 2px 6px;
+      font-size: 11px;
+      display: flex;
+      justify-content: space-between;
+      margin-top: 2px;
+    }
+
+    .resize-handle {
+      position: absolute;
+      right: 0;
+      bottom: 0;
+      width: 14px;
+      height: 14px;
+      cursor: nwse-resize;
+      touch-action: none;
+    }
+
+    /* Barra de tareas */
+    #taskbar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 34px;
+      z-index: 9000;
+      display: flex;
+      align-items: center;
+      padding: 2px 4px;
+      gap: 4px;
+      border-top: 2px solid var(--win-white);
+      background: var(--win-gray);
+    }
+
+    #start-btn {
+      font-weight: bold;
+      font-size: 13px;
+      height: 26px;
+      padding: 2px 8px;
+      flex-shrink: 0;
+    }
+
+    .taskbar-divider {
+      width: 2px;
+      height: 22px;
+      border-left: 1px solid var(--win-dark-gray);
+      border-right: 1px solid var(--win-white);
+      margin: 0 2px;
+    }
+
+    #taskbar-apps {
+      flex: 1;
+      display: flex;
+      gap: 4px;
+      overflow-x: auto;
+      height: 26px;
+    }
+
+    .task-item {
+      min-width: 110px;
+      max-width: 160px;
+      height: 26px;
+      justify-content: flex-start;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      font-size: 11px;
+    }
+
+    .task-item.active {
+      font-weight: bold;
+      background-color: #d4d4d4;
+    }
+
+    #systray {
+      height: 26px;
+      padding: 0 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      flex-shrink: 0;
+      border-top: 1px solid var(--win-dark-gray);
+      border-left: 1px solid var(--win-dark-gray);
+      border-right: 1px solid var(--win-white);
+      border-bottom: 1px solid var(--win-white);
+    }
+
+    /* Menú Inicio */
+    #start-menu {
+      position: fixed;
+      bottom: 34px;
+      left: 2px;
+      width: 220px;
+      z-index: 9500;
+      display: none;
+      flex-direction: row;
+      padding: 2px;
+    }
+
+    #start-menu.open {
+      display: flex;
+    }
+
+    .start-sidebar {
+      width: 26px;
+      background: linear-gradient(180deg, #000080, #808080);
+      color: var(--win-gray);
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      padding-bottom: 8px;
+    }
+
+    .start-sidebar span {
+      writing-mode: vertical-rl;
+      transform: rotate(180deg);
+      font-weight: bold;
+      font-size: 15px;
+      letter-spacing: 1px;
+      color: #c0c0c0;
+    }
+
+    .start-sidebar span b {
+      color: #fff;
+    }
+
+    .start-items {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .start-item {
+      padding: 7px 10px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+      font-size: 12px;
+    }
+
+    .start-item:hover {
+      background: var(--win-blue);
+      color: var(--win-white);
+    }
+
+    .start-sep {
+      height: 1px;
+      background: var(--win-dark-gray);
+      border-bottom: 1px solid var(--win-white);
+      margin: 3px 2px;
+    }
+
+    /* Menú contextual */
+    #context-menu {
+      position: fixed;
+      width: 165px;
+      z-index: 9600;
+      display: none;
+      flex-direction: column;
+      padding: 2px;
+    }
+
+    /* Estilos específicos de Aplicaciones */
+    /* 1. Bloc de notas */
+    .notepad-area {
+      width: 100%;
+      height: 100%;
+      resize: none;
+      border: none;
+      outline: none;
+      padding: 6px;
+      font-family: "Courier New", monospace;
+      font-size: 13px;
+      user-select: text;
+      -webkit-user-select: text;
+    }
+
+    /* 2. Calculadora */
+    .calc-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 5px;
+      padding: 8px;
+      flex: 1;
+    }
+
+    .calc-display {
+      margin: 8px 8px 0 8px;
+      padding: 6px 8px;
+      text-align: right;
+      font-family: "Courier New", monospace;
+      font-size: 18px;
+      font-weight: bold;
+    }
+
+    .calc-btn {
+      font-weight: bold;
+      min-height: 30px;
+    }
+
+    .calc-btn.red { color: #800000; }
+    .calc-btn.blue { color: #000080; }
+
+    /* 3. Paint */
+    .paint-wrap {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+    }
+
+    .paint-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      padding: 5px;
+      align-items: center;
+      border-bottom: 1px solid var(--win-dark-gray);
+    }
+
+    .color-swatch {
+      width: 18px;
+      height: 18px;
+      border: 1px solid #000;
+      cursor: pointer;
+    }
+
+    .color-swatch.active {
+      outline: 2px solid #fff;
+      box-shadow: 0 0 0 3px #000;
+    }
+
+    .paint-canvas-container {
+      flex: 1;
+      overflow: auto;
+      background: #808080;
+      padding: 6px;
+      display: flex;
+    }
+
+    canvas.paint-board {
+      background: #fff;
+      cursor: crosshair;
+      touch-action: none;
+    }
+
+    /* 4. Buscaminas */
+    .mine-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 6px;
+      margin: 6px;
+    }
+
+    .mine-counter {
+      background: #000;
+      color: #ff0000;
+      font-family: "Courier New", monospace;
+      font-weight: bold;
+      font-size: 18px;
+      padding: 2px 6px;
+      border: 1px inset #808080;
+    }
+
+    .mine-board {
+      display: grid;
+      grid-template-columns: repeat(9, 24px);
+      grid-template-rows: repeat(9, 24px);
+      margin: 0 auto 8px auto;
+      border: 3px inset #fff;
+    }
+
+    .mine-cell {
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      font-size: 13px;
+      cursor: pointer;
+    }
+
+    .mine-cell.revealed {
+      border: 1px solid #808080;
+      background: #c0c0c0;
+      box-shadow: none;
+    }
+
+    /* 5. Explorador / Mi PC / Papelera */
+    .explorer-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      padding: 14px;
+      align-content: flex-start;
+      flex: 1;
+    }
+
+    .folder-item {
+      width: 72px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      cursor: pointer;
+      gap: 4px;
+    }
+
+    .folder-item:hover span {
+      background: var(--win-blue);
+      color: #fff;
+    }
+
+    /* 6. MS-DOS */
+    .dos-screen {
+      background: #000;
+      color: #c0c0c0;
+      font-family: "Courier New", monospace;
+      font-size: 13px;
+      padding: 8px;
+      flex: 1;
+      overflow-y: auto;
+      user-select: text;
+    }
+
+    .dos-input-line {
+      display: flex;
+      align-items: center;
+    }
+
+    .dos-input {
+      background: transparent;
+      border: none;
+      color: #c0c0c0;
+      font-family: "Courier New", monospace;
+      font-size: 13px;
+      flex: 1;
+      outline: none;
+      margin-left: 4px;
+    }
+
+    /* Diálogo modal interno (sin alert) */
+    #win-dialog-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.2);
+      z-index: 9800;
+      display: none;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #win-dialog {
+      width: 310px;
+      max-width: 90%;
+      padding: 3px;
+    }
+
+    .dialog-content {
+      padding: 16px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .dialog-actions {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      padding-bottom: 12px;
+    }
+
+    /* Pantalla de apagado */
+    #shutdown-screen {
+      position: fixed;
+      inset: 0;
+      background: #000;
+      color: #ff8000;
+      z-index: 100000;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 20px;
+    }
+
+    #shutdown-screen h2 {
+      font-size: clamp(20px, 4vw, 32px);
+      margin-bottom: 20px;
+    }
+
+    @media (max-width: 600px) {
+      .desktop-icon { width: 66px; }
+      .task-item { min-width: 75px; max-width: 110px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Pantalla de arranque -->
+  <div id="boot-screen">
+    <div class="boot-logo">
+      <div style="font-size:13px; color:#333; margin-bottom:4px; font-weight:bold;">Microsoft®</div>
+      <h1>Windows<span>95</span></h1>
+      <div class="boot-bar-wrap" style="margin: 20px auto 0 auto;">
+        <div class="boot-bar"></div>
+      </div>
+    </div>
+    <p style="margin-top:16px; font-size:12px;">Iniciando entorno de escritorio...</p>
+  </div>
+
+  <!-- Escritorio -->
+  <div id="desktop"></div>
+
+  <!-- Menú Inicio -->
+  <div id="start-menu" class="bevel-out">
+    <div class="start-sidebar">
+      <span>Windows<b>95</b></span>
+    </div>
+    <div class="start-items">
+      <div class="start-item" onclick="openApp('mycomputer'); closeMenus();">
+        <span>💻</span> <span>Mi PC</span>
+      </div>
+      <div class="start-item" onclick="openApp('notepad'); closeMenus();">
+        <span>📝</span> <span>Bloc de notas</span>
+      </div>
+      <div class="start-item" onclick="openApp('paint'); closeMenus();">
+        <span>🎨</span> <span>Paint</span>
+      </div>
+      <div class="start-item" onclick="openApp('calculator'); closeMenus();">
+        <span>🧮</span> <span>Calculadora</span>
+      </div>
+      <div class="start-item" onclick="openApp('minesweeper'); closeMenus();">
+        <span>💣</span> <span>Buscaminas</span>
+      </div>
+      <div class="start-item" onclick="openApp('dos'); closeMenus();">
+        <span>⬛</span> <span>Símbolo del sistema</span>
+      </div>
+      <div class="start-item" onclick="openApp('settings'); closeMenus();">
+        <span>⚙️</span> <span>Panel de control</span>
+      </div>
+      <div class="start-sep"></div>
+      <div class="start-item" onclick="openApp('about'); closeMenus();">
+        <span>ℹ️</span> <span>Acerca de Windows 95</span>
+      </div>
+      <div class="start-sep"></div>
+      <div class="start-item" onclick="shutdownSystem(); closeMenus();">
+        <span>🔌</span> <span>Apagar el sistema...</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Menú Contextual -->
+  <div id="context-menu" class="bevel-out">
+    <div class="start-item" onclick="arrangeIcons(); closeMenus();">Organizar iconos</div>
+    <div class="start-item" onclick="openApp('notepad'); closeMenus();">Nuevo documento de texto</div>
+    <div class="start-sep"></div>
+    <div class="start-item" onclick="openApp('settings'); closeMenus();">Propiedades de pantalla</div>
+  </div>
+
+  <!-- Barra de tareas -->
+  <div id="taskbar">
+    <button id="start-btn" class="win-btn" onclick="toggleStartMenu(event)">
+      <svg width="16" height="16" viewBox="0 0 16 16">
+        <rect x="1" y="1" width="6" height="6" fill="#ff0000"/>
+        <rect x="9" y="1" width="6" height="6" fill="#00a000"/>
+        <rect x="1" y="9" width="6" height="6" fill="#0000ff"/>
+        <rect x="9" y="9" width="6" height="6" fill="#ffb900"/>
+      </svg>
+      Inicio
+    </button>
+    <div class="taskbar-divider"></div>
+    <div id="taskbar-apps"></div>
+    <div id="systray">
+      <span title="Sonido activado" style="cursor:pointer;" onclick="playBeep(520, 0.08)">🔊</span>
+      <span id="clock">12:00 PM</span>
+    </div>
+  </div>
+
+  <!-- Diálogo modal estilo Win95 -->
+  <div id="win-dialog-overlay">
+    <div id="win-dialog" class="bevel-out">
+      <div class="window-titlebar">
+        <span id="dialog-title">Windows 95</span>
+        <button class="win-btn win-ctrl-btn" onclick="closeDialog()">✕</button>
+      </div>
+      <div class="dialog-content">
+        <span id="dialog-icon" style="font-size:28px;">⚠️</span>
+        <div id="dialog-msg" style="line-height:1.4;">Mensaje del sistema.</div>
+      </div>
+      <div class="dialog-actions">
+        <button class="win-btn" onclick="closeDialog()">Aceptar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pantalla de apagado -->
+  <div id="shutdown-screen">
+    <h2>Ahora puede apagar el equipo con seguridad.</h2>
+    <button class="win-btn" onclick="restartSystem()">Reiniciar Windows 95</button>
+  </div>
+
+  <script>
+    /* ==========================================
+       AUDIO RETRO (Web Audio API sin archivos)
+       ========================================== */
+    let audioCtx = null;
+    function playBeep(freq = 440, duration = 0.1, type = 'sine') {
+      try {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(0.06, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+      } catch (e) {}
+    }
+
+    function playStartupSound() {
+      const notes = [261.63, 329.63, 392.00, 523.25];
+      notes.forEach((n, i) => {
+        setTimeout(() => playBeep(n, 0.35, 'triangle'), i * 140);
+      });
+    }
+
+    /* ==========================================
+       SISTEMA DE ARCHIVOS EN MEMORIA
+       ========================================== */
+    const virtualFiles = [
+      { id: 'f1', name: 'Bienvenido.txt', content: '¡Bienvenido a Windows 95!\n\nEste simulador incluye:\n- Ventanas arrastrables y redimensionables\n- Bloc de notas con guardado\n- Paint con pincel, goma y colores\n- Calculadora funcional\n- Buscaminas clásico\n- Consola MS-DOS interactiva\n- Personalización de fondo de pantalla' },
+      { id: 'f2', name: 'Notas_Secretas.txt', content: 'Clave de acceso: WIN95-1995\nNo olvidar respaldar en disquete de 3½.' }
+    ];
+    let recycleBin = [
+      { id: 'r1', name: 'Internet_Explorer_1.lnk', content: 'Acceso directo eliminado.' }
+    ];
+
+    /* ==========================================
+       ICONOS DEL ESCRITORIO
+       ========================================== */
+    const desktopIconsData = [
+      { id: 'mycomputer', label: 'Mi PC', icon: '💻' },
+      { id: 'recycle', label: 'Papelera de reciclaje', icon: '🗑️' },
+      { id: 'notepad', label: 'Bloc de notas', icon: '📝' },
+      { id: 'paint', label: 'Paint', icon: '🎨' },
+      { id: 'calculator', label: 'Calculadora', icon: '🧮' },
+      { id: 'minesweeper', label: 'Buscaminas', icon: '💣' },
+      { id: 'dos', label: 'MS-DOS', icon: '⬛' },
+      { id: 'settings', label: 'Configuración', icon: '⚙️' }
+    ];
+
+    function renderDesktopIcons() {
+      const desk = document.getElementById('desktop');
+      desk.innerHTML = '';
+      desktopIconsData.forEach(item => {
+        const el = document.createElement('div');
+        el.className = 'desktop-icon';
+        el.innerHTML = `
+          <div class="icon-graphic" style="font-size:28px;">${item.icon}</div>
+          <div class="icon-label">${item.label}</div>
+        `;
+        el.addEventListener('click', (e) => {
+          e.stopPropagation();
+          document.querySelectorAll('.desktop-icon').forEach(i => i.classList.remove('selected'));
+          el.classList.add('selected');
+        });
+        el.addEventListener('dblclick', () => openApp(item.id));
+        // Soporte táctil rápido (doble toque)
+        let lastTap = 0;
+        el.addEventListener('touchend', (e) => {
+          const now = Date.now();
+          if (now - lastTap < 350) {
+            e.preventDefault();
+            openApp(item.id);
+          }
+          lastTap = now;
+        });
+        desk.appendChild(el);
+      });
+    }
+
+    function arrangeIcons() {
+      renderDesktopIcons();
+    }
+
+    /* ==========================================
+       GESTOR DE VENTANAS (Window Manager)
+       ========================================== */
+    let zIndexCounter = 100;
+    let openWindows = {};
+    let windowOffset = 25;
+
+    function createWindow({ id, title, icon, width = 380, height = 280, contentHTML, statusText = 'Listo', onInit }) {
+      if (openWindows[id]) {
+        focusWindow(id);
+        const existing = openWindows[id].el;
+        if (existing.style.display === 'none') {
+          existing.style.display = 'flex';
+        }
+        return;
+      }
+
+      const desk = document.getElementById('desktop');
+      const maxW = desk.clientWidth - 16;
+      const maxH = desk.clientHeight - 16;
+      const finalW = Math.min(width, maxW);
+      const finalH = Math.min(height, maxH);
+
+      const left = Math.min(windowOffset, Math.max(8, maxW - finalW));
+      const top = Math.min(windowOffset, Math.max(8, maxH - finalH));
+      windowOffset = (windowOffset + 24) % 120 + 16;
+
+      const winEl = document.createElement('div');
+      winEl.className = 'window bevel-out';
+      winEl.id = `win-${id}`;
+      winEl.style.width = `${finalW}px`;
+      winEl.style.height = `${finalH}px`;
+      winEl.style.left = `${left}px`;
+      winEl.style.top = `${top}px`;
+      winEl.style.zIndex = ++zIndexCounter;
+
+      winEl.innerHTML = `
+        <div class="window-titlebar">
+          <div class="window-title-left">
+            <span>${icon}</span>
+            <span>${title}</span>
+          </div>
+          <div class="window-controls">
+            <button class="win-btn win-ctrl-btn" title="Minimizar" onclick="minimizeWindow('${id}')">_</button>
+            <button class="win-btn win-ctrl-btn" title="Maximizar" onclick="toggleMaximizeWindow('${id}')">□</button>
+            <button class="win-btn win-ctrl-btn" title="Cerrar" onclick="closeWindow('${id}')">✕</button>
+          </div>
+        </div>
+        <div class="window-body">${contentHTML}</div>
+        <div class="window-statusbar">
+          <span id="status-${id}">${statusText}</span>
+          <span>Win95</span>
+        </div>
+        <div class="resize-handle"></div>
+      `;
+
+      winEl.addEventListener('mousedown', () => focusWindow(id));
+      winEl.addEventListener('touchstart', () => focusWindow(id), { passive: true });
+
+      desk.appendChild(winEl);
+      openWindows[id] = { id, title, icon, el: winEl, minimized: false };
+
+      makeDraggable(winEl, winEl.querySelector('.window-titlebar'));
+      makeResizable(winEl, winEl.querySelector('.resize-handle'));
+      updateTaskbar();
+      focusWindow(id);
+
+      if (onInit) onInit(winEl);
+    }
+
+    function focusWindow(id) {
+      Object.values(openWindows).forEach(w => {
+        w.el.classList.add('inactive');
+      });
+      if (openWindows[id]) {
+        openWindows[id].el.classList.remove('inactive');
+        openWindows[id].el.style.zIndex = ++zIndexCounter;
+        openWindows[id].minimized = false;
+      }
+      updateTaskbar(id);
+    }
+
+    function minimizeWindow(id) {
+      if (!openWindows[id]) return;
+      openWindows[id].el.style.display = 'none';
+      openWindows[id].minimized = true;
+      updateTaskbar();
+    }
+
+    function toggleMaximizeWindow(id) {
+      if (!openWindows[id]) return;
+      openWindows[id].el.classList.toggle('maximized');
+    }
+
+    function closeWindow(id) {
+      if (!openWindows[id]) return;
+      openWindows[id].el.remove();
+      delete openWindows[id];
+      updateTaskbar();
+    }
+
+    function updateTaskbar(activeId = null) {
+      const container = document.getElementById('taskbar-apps');
+      container.innerHTML = '';
+      Object.values(openWindows).forEach(w => {
+        const btn = document.createElement('button');
+        const isActive = !w.minimized && (activeId === w.id || !w.el.classList.contains('inactive'));
+        btn.className = `win-btn task-item ${isActive ? 'active' : ''}`;
+        btn.innerHTML = `<span>${w.icon}</span> <span>${w.title}</span>`;
+        btn.onclick = () => {
+          if (w.minimized || w.el.style.display === 'none') {
+            w.el.style.display = 'flex';
+            focusWindow(w.id);
+          } else if (isActive) {
+            minimizeWindow(w.id);
+          } else {
+            focusWindow(w.id);
+          }
+        };
+        container.appendChild(btn);
+      });
+    }
+
+    function makeDraggable(winEl, handle) {
+      let startX, startY, origLeft, origTop, dragging = false;
+
+      const startDrag = (clientX, clientY) => {
+        if (winEl.classList.contains('maximized')) return;
+        dragging = true;
+        startX = clientX;
+        startY = clientY;
+        origLeft = winEl.offsetLeft;
+        origTop = winEl.offsetTop;
+      };
+
+      const moveDrag = (clientX, clientY) => {
+        if (!dragging) return;
+        const dx = clientX - startX;
+        const dy = clientY - startY;
+        winEl.style.left = `${origLeft + dx}px`;
+        winEl.style.top = `${Math.max(0, origTop + dy)}px`;
+      };
+
+      const stopDrag = () => { dragging = false; };
+
+      handle.addEventListener('mousedown', (e) => {
+        if (e.target.tagName === 'BUTTON') return;
+        startDrag(e.clientX, e.clientY);
+      });
+      window.addEventListener('mousemove', (e) => moveDrag(e.clientX, e.clientY));
+      window.addEventListener('mouseup', stopDrag);
+
+      handle.addEventListener('touchstart', (e) => {
+        if (e.target.tagName === 'BUTTON') return;
+        const t = e.touches[0];
+        startDrag(t.clientX, t.clientY);
+      }, { passive: true });
+      window.addEventListener('touchmove', (e) => {
+        if (!dragging) return;
+        const t = e.touches[0];
+        moveDrag(t.clientX, t.clientY);
+      }, { passive: true });
+      window.addEventListener('touchend', stopDrag);
+    }
+
+    function makeResizable(winEl, handle) {
+      let startX, startY, startW, startH, resizing = false;
+
+      const startResize = (cx, cy) => {
+        if (winEl.classList.contains('maximized')) return;
+        resizing = true;
+        startX = cx;
+        startY = cy;
+        startW = winEl.offsetWidth;
+        startH = winEl.offsetHeight;
+      };
+
+      const doResize = (cx, cy) => {
+        if (!resizing) return;
+        winEl.style.width = `${Math.max(240, startW + (cx - startX))}px`;
+        winEl.style.height = `${Math.max(160, startH + (cy - startY))}px`;
+      };
+
+      const stopResize = () => { resizing = false; };
+
+      handle.addEventListener('mousedown', (e) => {
+        e.stopPropagation();
+        startResize(e.clientX, e.clientY);
+      });
+      window.addEventListener('mousemove', (e) => doResize(e.clientX, e.clientY));
+      window.addEventListener('mouseup', stopResize);
+
+      handle.addEventListener('touchstart', (e) => {
+        e.stopPropagation();
+        const t = e.touches[0];
+        startResize(t.clientX, t.clientY);
+      }, { passive: true });
+      window.addEventListener('touchmove', (e) => {
+        if (!resizing) return;
+        const t = e.touches[0];
+        doResize(t.clientX, t.clientY);
+      }, { passive: true });
+      window.addEventListener('touchend', stopResize);
+    }
+
+    /* ==========================================
+       APLICACIONES DE WINDOWS 95
+       ========================================== */
+    function openApp(appId, extraData = null) {
+      playBeep(600, 0.04);
+
+      if (appId === 'notepad') {
+        const winId = extraData ? `notepad-${extraData.id}` : 'notepad';
+        const fileName = extraData ? extraData.name : 'Sin título - Bloc de notas';
+        const initialText = extraData ? extraData.content : '';
+
+        createWindow({
+          id: winId,
+          title: fileName,
+          icon: '📝',
+          width: 420,
+          height: 300,
+          statusText: 'Línea 1, Col 1',
+          contentHTML: `
+            <div class="window-menubar">
+              <span onclick="saveNotepadFile('${winId}')">Guardar en Mi PC</span>
+              <span onclick="document.getElementById('ta-${winId}').value=''">Limpiar</span>
+            </div>
+            <textarea id="ta-${winId}" class="notepad-area bevel-in" placeholder="Escribe aquí...">${initialText}</textarea>
+          `
+        });
+      }
+
+      else if (appId === 'calculator') {
+        createWindow({
+          id: 'calculator',
+          title: 'Calculadora',
+          icon: '🧮',
+          width: 260,
+          height: 310,
+          statusText: 'Estándar',
+          contentHTML: `
+            <div id="calc-disp" class="calc-display bevel-in">0</div>
+            <div class="calc-grid">
+              <button class="win-btn calc-btn red" onclick="calcInput('C')">C</button>
+              <button class="win-btn calc-btn red" onclick="calcInput('CE')">CE</button>
+              <button class="win-btn calc-btn blue" onclick="calcInput('/')">/</button>
+              <button class="win-btn calc-btn blue" onclick="calcInput('*')">*</button>
+              <button class="win-btn calc-btn" onclick="calcInput('7')">7</button>
+              <button class="win-btn calc-btn" onclick="calcInput('8')">8</button>
+              <button class="win-btn calc-btn" onclick="calcInput('9')">9</button>
+              <button class="win-btn calc-btn blue" onclick="calcInput('-')">-</button>
+              <button class="win-btn calc-btn" onclick="calcInput('4')">4</button>
+              <button class="win-btn calc-btn" onclick="calcInput('5')">5</button>
+              <button class="win-btn calc-btn" onclick="calcInput('6')">6</button>
+              <button class="win-btn calc-btn blue" onclick="calcInput('+')">+</button>
+              <button class="win-btn calc-btn" onclick="calcInput('1')">1</button>
+              <button class="win-btn calc-btn" onclick="calcInput('2')">2</button>
+              <button class="win-btn calc-btn" onclick="calcInput('3')">3</button>
+              <button class="win-btn calc-btn red" onclick="calcInput('=')">=</button>
+              <button class="win-btn calc-btn" style="grid-column: span 2;" onclick="calcInput('0')">0</button>
+              <button class="win-btn calc-btn" onclick="calcInput('.')">.</button>
+              <button class="win-btn calc-btn blue" onclick="calcInput('±')">±</button>
+            </div>
+          `
+        });
+      }
+
+      else if (appId === 'paint') {
+        createWindow({
+          id: 'paint',
+          title: 'Dibujo - Paint',
+          icon: '🎨',
+          width: 480,
+          height: 360,
+          statusText: 'Arrastra para dibujar',
+          contentHTML: `
+            <div class="paint-wrap">
+              <div class="paint-toolbar">
+                <button class="win-btn" onclick="setPaintTool('brush')">🖌️ Pincel</button>
+                <button class="win-btn" onclick="setPaintTool('eraser')">🧽 Goma</button>
+                <button class="win-btn" onclick="clearPaint()">🗑️ Nuevo</button>
+                <div style="display:flex; gap:3px; margin-left:4px;">
+                  ${['#000000','#808080','#800000','#ff0000','#008000','#00ff00','#000080','#0000ff','#ffff00','#00ffff','#ff00ff','#ffffff']
+                    .map(c => `<div class="color-swatch ${c==='#000000'?'active':''}" style="background:${c}" onclick="setPaintColor('${c}', this)"></div>`).join('')}
+                </div>
+              </div>
+              <div class="paint-canvas-container bevel-in">
+                <canvas id="paint-canvas" class="paint-board" width="430" height="240"></canvas>
+              </div>
+            </div>
+          `,
+          onInit: initPaint
+        });
+      }
+
+      else if (appId === 'minesweeper') {
+        createWindow({
+          id: 'minesweeper',
+          title: 'Buscaminas',
+          icon: '💣',
+          width: 265,
+          height: 345,
+          statusText: 'Clic izquierdo: abrir | Derecho: bandera',
+          contentHTML: `
+            <div class="mine-header bevel-in">
+              <div id="mine-flags" class="mine-counter">010</div>
+              <button id="mine-face" class="win-btn" style="font-size:16px; padding:2px 6px;" onclick="initMinesweeper()">🙂</button>
+              <div id="mine-timer" class="mine-counter">000</div>
+            </div>
+            <div id="mine-board" class="mine-board"></div>
+          `,
+          onInit: initMinesweeper
+        });
+      }
+
+      else if (appId === 'mycomputer') {
+        createWindow({
+          id: 'mycomputer',
+          title: 'Mi PC',
+          icon: '💻',
+          width: 400,
+          height: 280,
+          statusText: `${virtualFiles.length + 2} objeto(s)`,
+          contentHTML: `<div id="mycomputer-grid" class="explorer-grid bevel-in"></div>`,
+          onInit: renderMyComputer
+        });
+      }
+
+      else if (appId === 'recycle') {
+        createWindow({
+          id: 'recycle',
+          title: 'Papelera de reciclaje',
+          icon: '🗑️',
+          width: 360,
+          height: 250,
+          statusText: `${recycleBin.length} objeto(s)`,
+          contentHTML: `
+            <div class="window-menubar">
+              <span onclick="emptyRecycleBin()">Vaciar Papelera</span>
+            </div>
+            <div id="recycle-grid" class="explorer-grid bevel-in"></div>
+          `,
+          onInit: renderRecycleBin
+        });
+      }
+
+      else if (appId === 'dos') {
+        createWindow({
+          id: 'dos',
+          title: 'Símbolo del sistema MS-DOS',
+          icon: '⬛',
+          width: 440,
+          height: 280,
+          statusText: 'C:\\WINDOWS',
+          contentHTML: `
+            <div id="dos-output" class="dos-screen bevel-in" onclick="document.getElementById('dos-cmd').focus()">
+              <div>Microsoft(R) Windows 95</div>
+              <div>   (C)Copyright Microsoft Corp 1981-1995.</div>
+              <div style="margin-bottom:8px;">Escribe <b>HELP</b> para ver los comandos disponibles.</div>
+              <div id="dos-history"></div>
+              <div class="dos-input-line">
+                <span>C:\\WINDOWS&gt;</span>
+                <input id="dos-cmd" class="dos-input" type="text" autocomplete="off" onkeydown="handleDosKey(event)" />
+              </div>
+            </div>
+          `,
+          onInit: () => setTimeout(() => document.getElementById('dos-cmd')?.focus(), 50)
+        });
+      }
+
+      else if (appId === 'settings') {
+        createWindow({
+          id: 'settings',
+          title: 'Propiedades de Pantalla',
+          icon: '⚙️',
+          width: 340,
+          height: 250,
+          statusText: 'Personalización',
+          contentHTML: `
+            <div style="padding:14px; display:flex; flex-direction:column; gap:12px;">
+              <div><b>Selecciona el color del tapiz de escritorio:</b></div>
+              <div style="display:flex; flex-wrap:wrap; gap:8px;">
+                <button class="win-btn" onclick="changeWallpaper('#008080')">Verde azulado clásico</button>
+                <button class="win-btn" onclick="changeWallpaper('#000080')">Azul marino</button>
+                <button class="win-btn" onclick="changeWallpaper('#3a6ea5')">Azul Windows</button>
+                <button class="win-btn" onclick="changeWallpaper('#404040')">Gris oscuro</button>
+                <button class="win-btn" onclick="changeWallpaper('#5c2d91')">Púrpura retro</button>
+              </div>
+              <hr style="width:100%;">
+              <div><b>Prueba de sonido del sistema:</b></div>
+              <div>
+                <button class="win-btn" onclick="playStartupSound()">🔊 Reproducir sonido de inicio</button>
+              </div>
+            </div>
+          `
+        });
+      }
+
+      else if (appId === 'about') {
+        showDialog('Acerca de Windows 95', 'Microsoft Windows 95\nVersión 4.00.950\n\nSimulador interactivo HTML5 creado en un solo archivo con soporte táctil y de ratón.', '🪟');
+      }
+    }
+
+    /* ==========================================
+       LÓGICA DE CADA APLICACIÓN
+       ========================================== */
+    // Bloc de notas: guardar
+    function saveNotepadFile(winId) {
+      const ta = document.getElementById(`ta-${winId}`);
+      if (!ta) return;
+      const newName = `Nota_${virtualFiles.length + 1}.txt`;
+      virtualFiles.push({ id: `f${Date.now()}`, name: newName, content: ta.value });
+      renderMyComputer();
+      showDialog('Bloc de notas', `Archivo guardado como "${newName}" en Mi PC.`, '💾');
+    }
+
+    // Calculadora
+    let calcCurrent = '0';
+    let calcPrev = null;
+    let calcOp = null;
+    let calcResetNext = false;
+
+    function calcInput(val) {
+      const disp = document.getElementById('calc-disp');
+      if (!disp) return;
+
+      if (!isNaN(val)) {
+        if (calcCurrent === '0' || calcResetNext) {
+          calcCurrent = val;
+          calcResetNext = false;
+        } else {
+          calcCurrent += val;
+        }
+      } else if (val === '.') {
+        if (!calcCurrent.includes('.')) calcCurrent += '.';
+      } else if (val === 'C') {
+        calcCurrent = '0';
+        calcPrev = null;
+        calcOp = null;
+      } else if (val === 'CE') {
+        calcCurrent = '0';
+      } else if (val === '±') {
+        calcCurrent = String(parseFloat(calcCurrent) * -1);
+      } else if (['+', '-', '*', '/'].includes(val)) {
+        calcPrev = parseFloat(calcCurrent);
+        calcOp = val;
+        calcResetNext = true;
+      } else if (val === '=' && calcOp && calcPrev !== null) {
+        const curr = parseFloat(calcCurrent);
+        let res = 0;
+        if (calcOp === '+') res = calcPrev + curr;
+        if (calcOp === '-') res = calcPrev - curr;
+        if (calcOp === '*') res = calcPrev * curr;
+        if (calcOp === '/') res = curr === 0 ? 'Error' : calcPrev / curr;
+        calcCurrent = String(Number.isFinite(res) ? Number(res.toFixed(6)) : res);
+        calcOp = null;
+        calcPrev = null;
+        calcResetNext = true;
+      }
+      disp.textContent = calcCurrent;
+    }
+
+    // Paint
+    let paintColor = '#000000';
+    let paintTool = 'brush';
+
+    function setPaintColor(color, el) {
+      paintColor = color;
+      paintTool = 'brush';
+      document.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('active'));
+      if (el) el.classList.add('active');
+    }
+
+    function setPaintTool(tool) {
+      paintTool = tool;
+    }
+
+    function clearPaint() {
+      const canvas = document.getElementById('paint-canvas');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+
+    function initPaint() {
+      const canvas = document.getElementById('paint-canvas');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      let drawing = false;
+      const getPos = (e) => {
+        const rect = canvas.getBoundingClientRect();
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        return { x: clientX - rect.left, y: clientY - rect.top };
+      };
+
+      const start = (e) => {
+        drawing = true;
+        const p = getPos(e);
+        ctx.beginPath();
+        ctx.moveTo(p.x, p.y);
+      };
+
+      const draw = (e) => {
+        if (!drawing) return;
+        e.preventDefault();
+        const p = getPos(e);
+        ctx.lineWidth = paintTool === 'eraser' ? 14 : 3;
+        ctx.lineCap = 'round';
+        ctx.strokeStyle = paintTool === 'eraser' ? '#ffffff' : paintColor;
+        ctx.lineTo(p.x, p.y);
+        ctx.stroke();
+      };
+
+      const end = () => { drawing = false; };
+
+      canvas.addEventListener('mousedown', start);
+      canvas.addEventListener('mousemove', draw);
+      window.addEventListener('mouseup', end);
+
+      canvas.addEventListener('touchstart', start, { passive: false });
+      canvas.addEventListener('touchmove', draw, { passive: false });
+      window.addEventListener('touchend', end);
+    }
+
+    // Buscaminas (9x9, 10 minas)
+    let mineGrid = [];
+    let mineGameOver = false;
+    let mineTimerInterval = null;
+    let mineSeconds = 0;
+
+    function initMinesweeper() {
+      const board = document.getElementById('mine-board');
+      if (!board) return;
+      clearInterval(mineTimerInterval);
+      mineSeconds = 0;
+      mineGameOver = false;
+      document.getElementById('mine-timer').textContent = '000';
+      document.getElementById('mine-flags').textContent = '010';
+      document.getElementById('mine-face').textContent = '🙂';
+
+      const rows = 9, cols = 9, totalMines = 10;
+      mineGrid = Array.from({ length: rows }, () =>
+        Array.from({ length: cols }, () => ({ mine: false, revealed: false, flagged: false, count: 0 }))
+      );
+
+      let placed = 0;
+      while (placed < totalMines) {
+        const r = Math.floor(Math.random() * rows);
+        const c = Math.floor(Math.random() * cols);
+        if (!mineGrid[r][c].mine) {
+          mineGrid[r][c].mine = true;
+          placed++;
+        }
+      }
+
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          if (mineGrid[r][c].mine) continue;
+          let count = 0;
+          for (let dr = -1; dr <= 1; dr++) {
+            for (let dc = -1; dc <= 1; dc++) {
+              if (mineGrid[r + dr]?.[c + dc]?.mine) count++;
+            }
+          }
+          mineGrid[r][c].count = count;
+        }
+      }
+
+      mineTimerInterval = setInterval(() => {
+        if (!mineGameOver && mineSeconds < 999) {
+          mineSeconds++;
+          const el = document.getElementById('mine-timer');
+          if (el) el.textContent = String(mineSeconds).padStart(3, '0');
+        }
+      }, 1000);
+
+      renderMineBoard();
+    }
+
+    function renderMineBoard() {
+      const board = document.getElementById('mine-board');
+      if (!board) return;
+      board.innerHTML = '';
+      const colors = ['', '#0000ff', '#008000', '#ff0000', '#000080', '#800000', '#008080', '#000', '#808080'];
+
+      let flagsUsed = 0;
+      mineGrid.forEach(row => row.forEach(cell => { if (cell.flagged) flagsUsed++; }));
+      document.getElementById('mine-flags').textContent = String(Math.max(0, 10 - flagsUsed)).padStart(3, '0');
+
+      for (let r = 0; r < 9; r++) {
+        for (let c = 0; c < 9; c++) {
+          const cell = mineGrid[r][c];
+          const el = document.createElement('div');
+          el.className = `mine-cell ${cell.revealed ? 'revealed' : 'bevel-out'}`;
+
+          if (cell.revealed) {
+            if (cell.mine) {
+              el.textContent = '💣';
+              el.style.background = '#ff0000';
+            } else if (cell.count > 0) {
+              el.textContent = cell.count;
+              el.style.color = colors[cell.count];
+            }
+          } else if (cell.flagged) {
+            el.textContent = '🚩';
+          }
+
+          el.onclick = () => revealMineCell(r, c);
+          el.oncontextmenu = (e) => {
+            e.preventDefault();
+            if (mineGameOver || cell.revealed) return;
+            cell.flagged = !cell.flagged;
+            renderMineBoard();
+          };
+          board.appendChild(el);
+        }
+      }
+    }
+
+    function revealMineCell(r, c) {
+      if (mineGameOver) return;
+      const cell = mineGrid[r]?.[c];
+      if (!cell || cell.revealed || cell.flagged) return;
+
+      cell.revealed = true;
+      if (cell.mine) {
+        mineGameOver = true;
+        document.getElementById('mine-face').textContent = '😵';
+        playBeep(150, 0.3, 'sawtooth');
+        mineGrid.forEach(row => row.forEach(item => { if (item.mine) item.revealed = true; }));
+        renderMineBoard();
+        return;
+      }
+
+      if (cell.count === 0) {
+        for (let dr = -1; dr <= 1; dr++) {
+          for (let dc = -1; dc <= 1; dc++) {
+            revealMineCell(r + dr, c + dc);
+          }
+        }
+      }
+
+      // Verificar victoria
+      let unrevealedSafe = 0;
+      mineGrid.forEach(row => row.forEach(item => { if (!item.mine && !item.revealed) unrevealedSafe++; }));
+      if (unrevealedSafe === 0) {
+        mineGameOver = true;
+        document.getElementById('mine-face').textContent = '😎';
+        playStartupSound();
+      }
+      renderMineBoard();
+    }
+
+    // Mi PC & Papelera
+    function renderMyComputer() {
+      const grid = document.getElementById('mycomputer-grid');
+      if (!grid) return;
+      grid.innerHTML = `
+        <div class="folder-item" ondblclick="showDialog('Disco local (C:)', 'Capacidad: 512 MB\\nEspacio libre: 340 MB\\nSistema de archivos: FAT16', '💽')">
+          <div style="font-size:28px;">💽</div>
+          <span>Disco local (C:)</span>
+        </div>
+        <div class="folder-item" ondblclick="showDialog('Disquete de 3½ (A:)', 'La unidad A: no está lista. Inserte un disco.', '💾')">
+          <div style="font-size:28px;">💾</div>
+          <span>Disquete 3½ (A:)</span>
+        </div>
+      `;
+      virtualFiles.forEach(file => {
+        const div = document.createElement('div');
+        div.className = 'folder-item';
+        div.innerHTML = `<div style="font-size:28px;">📄</div><span>${file.name}</span>`;
+        div.ondblclick = () => openApp('notepad', file);
+        grid.appendChild(div);
+      });
+    }
+
+    function renderRecycleBin() {
+      const grid = document.getElementById('recycle-grid');
+      if (!grid) return;
+      grid.innerHTML = '';
+      if (recycleBin.length === 0) {
+        grid.innerHTML = '<div style="color:#808080;">La Papelera de reciclaje está vacía.</div>';
+        return;
+      }
+      recycleBin.forEach(item => {
+        const div = document.createElement('div');
+        div.className = 'folder-item';
+        div.innerHTML = `<div style="font-size:28px;">📄</div><span>${item.name}</span>`;
+        grid.appendChild(div);
+      });
+    }
+
+    function emptyRecycleBin() {
+      recycleBin = [];
+      renderRecycleBin();
+      const status = document.getElementById('status-recycle');
+      if (status) status.textContent = '0 objeto(s)';
+      playBeep(300, 0.1);
+    }
+
+    // MS-DOS
+    function handleDosKey(e) {
+      if (e.key !== 'Enter') return;
+      const input = document.getElementById('dos-cmd');
+      const history = document.getElementById('dos-history');
+      const raw = input.value.trim();
+      const cmd = raw.toUpperCase();
+      input.value = '';
+
+      let response = '';
+      if (cmd === 'HELP') {
+        response = 'Comandos: HELP, DIR, VER, DATE, TIME, CLS, ECHO [texto], EXIT';
+      } else if (cmd === 'VER') {
+        response = 'Windows 95. [Versión 4.00.950]';
+      } else if (cmd === 'DIR') {
+        response = ' Directorio de C:\\WINDOWS\n\n' + virtualFiles.map(f => `  ${f.name.padEnd(22)} 1,024 bytes`).join('\n');
+      } else if (cmd === 'DATE') {
+        response = `La fecha actual es: ${new Date().toLocaleDateString()}`;
+      } else if (cmd === 'TIME') {
+        response = `La hora actual es: ${new Date().toLocaleTimeString()}`;
+      } else if (cmd === 'CLS') {
+        history.innerHTML = '';
+        return;
+      } else if (cmd.startsWith('ECHO ')) {
+        response = raw.slice(5);
+      } else if (cmd === 'EXIT') {
+        closeWindow('dos');
+        return;
+      } else if (cmd !== '') {
+        response = 'Comando o nombre de archivo incorrecto';
+      }
+
+      const line = document.createElement('div');
+      line.style.whiteSpace = 'pre-wrap';
+      line.style.marginBottom = '4px';
+      line.textContent = `C:\\WINDOWS>${raw}\n${response}`;
+      history.appendChild(line);
+
+      const screen = document.getElementById('dos-output');
+      screen.scrollTop = screen.scrollHeight;
+    }
+
+    // Personalización
+    function changeWallpaper(color) {
+      document.body.style.backgroundColor = color;
+    }
+
+    /* ==========================================
+       MENÚ INICIO, RELOJ, DIÁLOGOS Y APAGADO
+       ========================================== */
+    function toggleStartMenu(e) {
+      e.stopPropagation();
+      document.getElementById('context-menu').style.display = 'none';
+      const menu = document.getElementById('start-menu');
+      const btn = document.getElementById('start-btn');
+      const isOpen = menu.classList.toggle('open');
+      btn.classList.toggle('active', isOpen);
+    }
+
+    function closeMenus() {
+      document.getElementById('start-menu').classList.remove('open');
+      document.getElementById('start-btn').classList.remove('active');
+      document.getElementById('context-menu').style.display = 'none';
+    }
+
+    document.getElementById('desktop').addEventListener('click', () => {
+      closeMenus();
+      document.querySelectorAll('.desktop-icon').forEach(i => i.classList.remove('selected'));
+    });
+
+    document.getElementById('desktop').addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+      closeMenus();
+      const cm = document.getElementById('context-menu');
+      cm.style.display = 'flex';
+      cm.style.left = `${Math.min(e.clientX, window.innerWidth - 170)}px`;
+      cm.style.top = `${Math.min(e.clientY, window.innerHeight - 130)}px`;
+    });
+
+    function showDialog(title, msg, icon = '⚠️') {
+      document.getElementById('dialog-title').textContent = title;
+      document.getElementById('dialog-msg').innerText = msg;
+      document.getElementById('dialog-icon').textContent = icon;
+      document.getElementById('win-dialog-overlay').style.display = 'flex';
+      playBeep(380, 0.12);
+    }
+
+    function closeDialog() {
+      document.getElementById('win-dialog-overlay').style.display = 'none';
+    }
+
+    function shutdownSystem() {
+      playBeep(330, 0.15);
+      setTimeout(() => playBeep(220, 0.3), 160);
+      document.getElementById('shutdown-screen').style.display = 'flex';
+    }
+
+    function restartSystem() {
+      document.getElementById('shutdown-screen').style.display = 'none';
+      const boot = document.getElementById('boot-screen');
+      boot.style.display = 'flex';
+      setTimeout(() => {
+        boot.style.display = 'none';
+        playStartupSound();
+      }, 1500);
+    }
+
+    function updateClock() {
+      const now = new Date();
+      document.getElementById('clock').textContent = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+
+    /* ==========================================
+       INICIALIZACIÓN
+       ========================================== */
+    window.onload = () => {
+      renderDesktopIcons();
+      updateClock();
+      setInterval(updateClock, 10000);
+
+      setTimeout(() => {
+        document.getElementById('boot-screen').style.display = 'none';
+        openApp('notepad', virtualFiles[0]);
+      }, 1800);
+    };
+  </script>
+</body>
+</html>
